@@ -28,3 +28,7 @@ def view():
     data = load_data() # Loading the data from json using the helper function, for viewing purpose.
     return data
 
+
+# Dynamic endpoint to view a specific patient record by ID
+@app.get("/patient/{patient_id}")
+
