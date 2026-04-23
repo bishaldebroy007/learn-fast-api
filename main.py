@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
 
 app = FastAPI()
 
@@ -12,4 +13,8 @@ def read_root():
 @app.get("/aiquest")
 def aiquest():
     return {"AI": "QUEST"}
+
+@app.get("/python")
+def python():
+    return {"Python": "It is the best Programming Language, World."}
 
