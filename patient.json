@@ -1,0 +1,82 @@
+{
+  "P001": {
+    "name": "Priya Patel",
+    "city": "Ahmedabad",
+    "age": 32,
+    "gender": "female",
+    "height": 1.62,
+    "weight": 58,
+    "bmi": 22.1,
+    "verdict": "Normal"
+  },
+  "P002": {
+    "name": "Rahul Singh",
+    "city": "Delhi",
+    "age": 28,
+    "gender": "male",
+    "height": 1.78,
+    "weight": 88,
+    "bmi": 27.78,
+    "verdict": "Overweight"
+  },
+  "P003": {
+    "name": "Kavita Reddy",
+    "city": "Hyderabad",
+    "age": 45,
+    "gender": "female",
+    "height": 1.58,
+    "weight": 72,
+    "bmi": 28.84,
+    "verdict": "Overweight"
+  },
+  "P004": {
+    "name": "Amit Kumar",
+    "city": "Jaipur",
+    "age": 38,
+    "gender": "male",
+    "height": 1.72,
+    "weight": 95,
+    "bmi": 32.11,
+    "verdict": "Obese"
+  },
+  "P005": {
+    "name": "Sneha Gupta",
+    "city": "Lucknow",
+    "age": 26,
+    "gender": "female",
+    "height": 1.65,
+    "weight": 48,
+    "bmi": 17.63,
+    "verdict": "Underweight"
+  },
+  "P006": {
+    "name": "Vikram Joshi",
+    "city": "Pune",
+    "age": 42,
+    "gender": "male",
+    "height": 1.75,
+    "weight": 70,
+    "bmi": 22.86,
+    "verdict": "Normal"
+  },
+  "P007": {
+    "name": "Deepika Nair",
+    "city": "Kochi",
+    "age": 29,
+    "gender": "female",
+    "height": 1.6,
+    "weight": 82,
+    "bmi": 32.03,
+    "verdict": "Obese"
+  },
+  "P008": {
+    "name": "Sanjay Mehta",
+    "city": "Chandigarh",
+    "age": 51,
+    "gender": "male",
+    "height": 1.68,
+    "weight": 55,
+    "bmi": 19.49,
+    "verdict": "Normal"
+  }
+}
