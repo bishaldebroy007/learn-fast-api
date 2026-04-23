@@ -16,5 +16,5 @@ def aiquest():
 
 @app.get("/python")
 def python():
-    return {"Python": "It is the best Programming Language, World."}
+    return {"Python": "xyz."}
 
