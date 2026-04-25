@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Path, HTTPException
+from fastapi import FastAPI, Path, HTTPException, Query
 from pydantic import BaseModel
 import json
 
@@ -39,4 +39,31 @@ def view_patient(patient_id: str = Path(..., description="ID of the patient", ex
         return patient
     # return {"error": f"Patient {patient_id}, not found"}
     raise HTTPException(status_code= 404, detail= f"{patient_id} not fount")
+
+
+# Sorting Data on the basis of query parameters
+@app.get("/sort")
+def patient_sort(sort_by: str = Query(..., description="Sort- height/weight/bmi"), order: str = Query("asc", description="sort in asc/desc order" )):
+    
+    #List of all the valid fields. sort_orders
+    valid_fields = ["weight", "height", "bmi"]
+    sort_types = ["asc", "desc"]
+    
+    # Error handeling for sort_by
+    if sort_by not in valid_fields: raise HTTPException(status_code=400, detail=f"Invalid field selected, {valid_fields}")
+    
+    # Error handeling for order
+    if order not in sort_types: raise HTTPException(status_code=400, detail="You've selected invalid order, chose between asc/desc")
+    
+    # Loading the data using load_data()
+    data = load_data()
+    
+    sort_order = True if order=="desc" else False
+    
+    '''
+    - Sort the dictionary values by the field specified in 'sort_by' (e.g., height/weight/bmi).
+    - If the field is missing, default to 0. The 'reverse' flag applies the chosen sort order.
+    '''
+    
+    sorted_data = sorted(data.values(), key=lambda x: x.get(sort_by, 0), reverse=sort_order)
 
