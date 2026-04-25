@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Path, HTTPException
 from pydantic import BaseModel
 import json
 
@@ -31,11 +31,12 @@ def view():
 
 # Dynamic endpoint to view a specific patient record by ID
 @app.get("/patient/{patient_id}")
-def view_patient(patient_id: str):
+def view_patient(patient_id: str = Path(..., description="ID of the patient", example="P001")):
     data = load_data()
     patient_id = patient_id.upper() # Made it upper case for exact match
     patient = data.get(patient_id)  # safer lookup
     if patient:
         return patient
-    return {"error": f"Patient {patient_id}, not found"}
+    # return {"error": f"Patient {patient_id}, not found"}
+    raise HTTPException(status_code= 404, detail= f"{patient_id} not fount")
 
