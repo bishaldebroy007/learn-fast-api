@@ -266,7 +266,147 @@ update_patient_data(patient1)
 ---
 
 ## Model Validator
+**Defination:** A model validator (Pydantic v2 @model_validator) is a validator that operates on the entire model instance after each field has been validated individually. It can see all fields at once, allowing you to enforce rules that involve multiple fields or to transform the whole data object.
+
+In other words: <br>
+
+- Field validators ask: “Is this one field correct?”
+- Model validators ask: “Does this combination of fields make sense together?”
+
+### Why is it used?
+
+Use a model validator when:
+
+- Cross‑field validation – One field’s validity depends on the value of another field (e.g., confirm_password must match password; if is_premium is true, then payment_id is required).
+- Complex business rules – The logic involves multiple fields and can’t be cleanly expressed in a single field validator.
+- Data transformation – You need to compute or modify several fields at once (e.g., create a full_name from first_name and last_name).
+- Order matters – You want validation to happen after individual fields are checked but before the model is fully constructed.
+
+### Two modes (Pydantic v2)
+
+- `mode='before'` – Runs before field validation, giving you access to raw input (e.g., a dict). Useful for normalizing input.
+
+- `mode='after'` – Runs after field validation, receiving the already-validated model instance (or a partially constructed one). This is the default and most common.
+
+
+### Example: Password confirmation and conditional fields
+
+```python
+from pydantic import BaseModel, model_validator
+
+class UserSignup(BaseModel):
+    password: str
+    confirm_password: str
+    is_premium: bool = False
+    payment_id: str | None = None
+
+    # This runs after individual fields are validated
+    @model_validator(mode='after')
+    def check_passwords_match_and_payment(self):
+        # 1. Passwords must match
+        if self.password != self.confirm_password:
+            raise ValueError("Passwords do not match")
+        
+        # 2. If premium is selected, payment_id is required
+        if self.is_premium and not self.payment_id:
+            raise ValueError("payment_id is required for premium accounts")
+        
+        return self
+```
+
+If I send:
+
+```json
+{
+  "password": "abc",
+  "confirm_password": "xyz",
+  "is_premium": true
+}
+```
+
+I would get:
+
+```json
+{
+  "detail": [
+    {
+      "type": "value_error",
+      "loc": [],
+      "msg": "Value error, Passwords do not match",
+      ...
+    }
+  ]
+}
+```
+
+_**Notice the "loc": [] – it’s a model‑level error, not tied to a single field.**_
+
+### Bonus: Transform data with mode='before'
+Sometimes you receive data in a different shape and want to clean it up before validation.
+
+```python
+from pydantic import BaseModel, model_validator
+
+class Product(BaseModel):
+    name: str
+    price: float
+    tax: float = 0.0
+
+    @model_validator(mode='before')
+    @classmethod
+    def compute_tax_if_missing(cls, data: dict) -> dict:
+        # data is the raw input dict (e.g., from JSON)
+        if isinstance(data, dict):
+            if 'tax' not in data and 'price' in data:
+                data['tax'] = data['price'] * 0.1
+        return data
+```
+
+### Quick rule of thumb
+
+- If the rule involves one field only → `@field_validator` or `Field()` constraints.
+
+- If the rule needs two or more fields (or the whole object) → `@model_validator`.
+
+
+### Examples
+
+```python
+from pydantic import BaseModel, EmailStr, model_validator
+from typing import List, Dict
+
+class Patient(BaseModel):
+
+    name: str
+    email: EmailStr
+    age: int
+    weight: float
+    married: bool
+    allergies: List[str]
+    contact_details: Dict[str, str]
+
+    @model_validator(mode='after')
+    def validate_emergency_contact(cls, model):
+        if model.age > 60 and 'emergency' not in model.contact_details:
+            raise ValueError('Patients older than 60 must have an emergency contact')
+        return model
 
 
 
+def update_patient_data(patient: Patient):
+
+    print(patient.name)
+    print(patient.age)
+    print(patient.allergies)
+    print(patient.married)
+    print('updated')
+
+patient_info = {'name':'nitish', 'email':'abc@icici.com', 'age': '65', 'weight': 75.2, 'married': True, 'allergies': ['pollen', 'dust'], 'contact_details':{'phone':'2353462', 'emergency':'235236'}}
+
+patient1 = Patient(**patient_info) 
+
+update_patient_data(patient1)
+```
+
+---
 
