@@ -410,3 +410,364 @@ update_patient_data(patient1)
 
 ---
 
+## Computed Fields
+
+A computed field is a field that doesn’t come from the request body or user input. Instead, its value is calculated inside the model based on other fields, and it’s included when the model is serialized (e.g., returned as a JSON response). It acts like a derived property that’s always consistent with the rest of the data.
+
+### Why is it used?
+
+Use a computed field when:
+
+- Derived data – You want to expose a value that is fully determined by other fields (e.g., total_price = unit_price * quantity).
+
+- Avoid frontend recalculations – Instead of making your Next.js frontend compute the same thing over and over, you let the backend do it once and ship it.
+
+- Consistency – Ensures the same calculation logic is used everywhere, not scattered across clients.
+
+- Read‑only guarantees – The client can never set or overwrite this field; it’s purely an output.
+
+- Cleaner responses – You can include extra information in API responses without storing it in a database.
+
+### How to create one (Pydantic v2)
+
+Use the computed_field decorator from Pydantic. The function’s return value becomes the field’s value whenever the model is serialized (e.g., in a FastAPI response).
+
+```python
+from pydantic import BaseModel, computed_field
+
+class Order(BaseModel):
+    unit_price: float
+    quantity: int
+    discount_percent: float = 0.0
+
+    @computed_field
+    @property
+    def total_price(self) -> float:
+        discount = self.discount_percent / 100
+        return self.unit_price * self.quantity * (1 - discount)
+
+    @computed_field
+    @property
+    def is_bulk_order(self) -> bool:
+        return self.quantity >= 10
+```
+
+The `@property` decorator makes it accessible like an attribute (order.total_price), and `@computed_field` tells Pydantic to include it in the model’s serialized output (.model_dump(), JSON response, etc.).
+
+###  Full FastAPI Example
+
+```python
+from fastapi import FastAPI
+from pydantic import BaseModel, computed_field
+
+app = FastAPI()
+
+class Product(BaseModel):
+    name: str
+    price: float
+    tax_rate: float = 0.1
+
+    @computed_field
+    @property
+    def final_price(self) -> float:
+        return round(self.price * (1 + self.tax_rate), 2)
+
+    @computed_field
+    @property
+    def description(self) -> str:
+        return f"{self.name} (${self.final_price})"
+
+@app.post("/product/")
+async def create_product(product: Product):
+    # product now contains computed fields automatically
+    return product
+```
+
+#### Request:
+
+```json
+{
+  "name": "Notebook",
+  "price": 20.0
+}
+```
+
+#### Response:
+
+```json
+{
+  "name": "Notebook",
+  "price": 20.0,
+  "tax_rate": 0.1,
+  "final_price": 22.0,
+  "description": "Notebook ($22.0)"
+}
+```
+
+The client never sent `final_price` or `description` – they were computed on the server and included in the response.
+
+### Examples
+
+```python
+from pydantic import BaseModel, EmailStr, computed_field
+from typing import List, Dict
+
+class Patient(BaseModel):
+
+    name: str
+    email: EmailStr
+    age: int
+    weight: float # kg
+    height: float # mtr
+    married: bool
+    allergies: List[str]
+    contact_details: Dict[str, str]
+
+    @computed_field
+    @property
+    def bmi(self) -> float:
+        bmi = round(self.weight/(self.height**2),2)
+        return bmi
+
+
+
+def update_patient_data(patient: Patient):
+
+    print(patient.name)
+    print(patient.age)
+    print(patient.allergies)
+    print(patient.married)
+    print('BMI', patient.bmi)
+    print('updated')
+
+patient_info = {'name':'nitish', 'email':'abc@icici.com', 'age': '65', 'weight': 75.2, 'height': 1.72, 'married': True, 'allergies': ['pollen', 'dust'], 'contact_details':{'phone':'2353462', 'emergency':'235236'}}
+
+patient1 = Patient(**patient_info) 
+
+update_patient_data(patient1)
+```
+
+### Field Validator vs Model Validator vs Computed Field
+
+|     Purpose     	| Validates input? 	| Transforms output? 	| Sees multiple fields? 	|
+|:---------------:	|:----------------:	|:------------------:	|:---------------------:	|
+| Field Validator 	|   single field   	|          X         	|           X           	|
+| Model Validator 	|    whole object  	|   (with 'before')  	|           ✅           	|
+|  Computed Field 	|         X        	|   adds new fields  	|   (can read others)   	|
+
+## Important note
+- Computed fields are read‑only in requests. If a client tries to send them, Pydantic will ignore them (they are not accepted as input). They exist only in serialized output.
+
+- They are recalculated every time you call `.model_dump()` or the model is returned by FastAPI, so keep them lightweight (no heavy DB calls, unless you really need to).
+
+
+## Nested Modules
+
+A nested model is simply a Pydantic model used as the type of a field inside another Pydantic model. This allows you to define complex, tree‑like data structures.
+Serialization (in our context) is the automatic conversion of these nested model instances into and from JSON – handled entirely by FastAPI and Pydantic.
+
+In easier words: if a user’s data includes an address, you create an Address model, and then your User model has an address: Address field. The validation and JSON conversion happens recursively.
+
+
+### Why is it used?
+
+- Real‑world complex data – Most APIs need to receive or return structured, hierarchical data (e.g., an order contains multiple items, each with its own fields).
+
+- Clean code & reuse – Define a sub‑model once and reuse it in multiple parent models.
+
+- Automatic deep validation – Pydantic will validate every level of nesting; you get full 422 errors for any invalid nested field.
+
+- One‑line serialization – When you return a model from a FastAPI endpoint, all nested models get automatically converted to nested JSON. No manual mapping or serializing.
+
+- Works with all previous tools – Field validators, model validators, and computed fields all work inside nested models as well.
+
+### Example: Order with nested customer and items
+```python
+from fastapi import FastAPI
+from pydantic import BaseModel, Field, computed_field
+
+app = FastAPI()
+
+# ---------- Nested Model 1 ----------
+class Address(BaseModel):
+    street: str
+    city: str
+    zip_code: str = Field(min_length=5, max_length=10)
+
+# ---------- Nested Model 2 ----------
+class Customer(BaseModel):
+    name: str
+    email: str
+    shipping_address: Address    # <-- nested model
+
+# ---------- Nested Model 3 ----------
+class OrderItem(BaseModel):
+    product_name: str
+    quantity: int = Field(gt=0)
+    unit_price: float = Field(gt=0)
+
+    @computed_field
+    @property
+    def total_price(self) -> float:
+        return self.quantity * self.unit_price
+
+# ---------- The Parent Model ----------
+class Order(BaseModel):
+    customer: Customer
+    items: list[OrderItem]      # a list of nested models
+    discount_code: str | None = None
+
+    @computed_field
+    @property
+    def order_total(self) -> float:
+        return sum(item.total_price for item in self.items)
+
+@app.post("/order/")
+async def create_order(order: Order):
+    # Order is fully validated, including all nesting
+    return order   # FastAPI serializes the entire tree to JSON automatically
+```
+#### Sample Request:
+```json
+{
+  "customer": {
+    "name": "Alice",
+    "email": "alice@example.com",
+    "shipping_address": {
+      "street": "123 Main St",
+      "city": "Springfield",
+      "zip_code": "12345"
+    }
+  },
+  "items": [
+    {
+      "product_name": "Widget",
+      "quantity": 3,
+      "unit_price": 9.99
+    },
+    {
+      "product_name": "Gadget",
+      "quantity": 1,
+      "unit_price": 24.99
+    }
+  ]
+}
+```
+
+#### Response (automatically serialized):
+
+```json
+{
+  "customer": {
+    "name": "Alice",
+    "email": "alice@example.com",
+    "shipping_address": {
+      "street": "123 Main St",
+      "city": "Springfield",
+      "zip_code": "12345"
+    }
+  },
+  "items": [
+    {
+      "product_name": "Widget",
+      "quantity": 3,
+      "unit_price": 9.99,
+      "total_price": 29.97
+    },
+    {
+      "product_name": "Gadget",
+      "quantity": 1,
+      "unit_price": 24.99,
+      "total_price": 24.99
+    }
+  ],
+  "discount_code": null,
+  "order_total": 54.96
+}
+```
+Notice that computed fields (total_price, order_total) are also present, even inside nested items.
+
+### Another Examples
+
+```python
+from pydantic import BaseModel
+
+class Address(BaseModel):
+
+    city: str
+    state: str
+    pin: str
+
+class Patient(BaseModel):
+
+    name: str
+    gender: str
+    age: int
+    address: Address
+
+address_dict = {'city': 'gurgaon', 'state': 'haryana', 'pin': '122001'}
+
+address1 = Address(**address_dict)
+
+patient_dict = {'name': 'nitish', 'gender': 'male', 'age': 35, 'address': address1}
+
+patient1 = Patient(**patient_dict)
+
+temp = patient1.model_dump(include=)
+
+print(type(temp))
+
+
+# Better organization of related data (e.g., vitals, address, insurance)
+
+# Reusability: Use Vitals in multiple models (e.g., Patient, MedicalRecord)
+
+# Readability: Easier for developers and API consumers to understand
+
+# Validation: Nested models are validated automatically—no extra work needed
+```
+
+
+
+### Helpful tricks
+
+#### 1. Optional Nested Model:
+
+```python
+class User(BaseModel):
+    profile_picture: Image | None = None   # can be missing or null
+```
+
+
+#### 2. Deep validation still works:
+
+```bash
+loc: ["body", "customer", "shipping_address", "zip_code"]
+```
+
+#### 3. Nested models work with Field() defaults
+
+```python
+class Order(BaseModel):
+    customer: Customer
+    items: list[OrderItem] = Field(default_factory=list)  # default empty list
+```
+
+#### 4. Model validators at any level
+You can have a `@model_validator` inside `Address` that checks something like "if city is X, zip must start with Y" – it runs independently during validation of that sub‑object.
+
+### Bringing it all together
+
+|     **Tool**    	|     **Where it runs**     	|                            **Purpose**                            	|
+|:---------------:	|:-------------------------:	|:-----------------------------------------------------------------:	|
+| Field Validator 	|     On a single field     	|                  Validate individual input values                 	|
+| Model Validator 	|     On the whole model    	|              Cross‑field checks, data transformation              	|
+|  Computed Field 	|      After validation     	|                Add read‑only derived output fields                	|
+|  Nested Models  	| On fields that are models 	| Structure complex data, automatic deep validation & serialization 	|
+
+
+
+
+
+
+
