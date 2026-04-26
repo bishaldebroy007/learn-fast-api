@@ -70,4 +70,6 @@ def patient_sort(sort_by: str = Query(..., description="Sort- height/weight/bmi"
     return sorted_data
 
     # Test by running the server and accessing the endpoint with different query parameters, e.g., /sort?sort_by=height&order=desc
-    # URL: http://127.0.0.1:8000/sort?sort_by=height&order=desc
+    # endpoint: http://127.0.0.1:8000/sort?sort_by=height&order=desc
+    
+    
