@@ -4,7 +4,13 @@ import json
 
 app = FastAPI()
 
-# Decorator
+class Patient(BaseModel):
+    name: str
+    city: str
+    age: str
+    gender: str
+    height: float
+    weight: float
 
 # Lets make a helper function to load data from the json file
 def load_data():
