@@ -6,9 +6,7 @@
 		"age": 28,
 		"gender": "female",
 		"height": 1.65,
-		"weight": 90.0,
-		"bmi": 33.06,
-		"verdict": "Obese"
+		"weight": 90.0
 	},
 	"P002": {
 		"id": "P002",
@@ -17,9 +15,7 @@
 		"age": 35,
 		"gender": "male",
 		"height": 1.75,
-		"weight": 85,
-		"bmi": 27.76,
-		"verdict": "Overweight"
+		"weight": 85
 	},
 	"P003": {
 		"id": "P003",
@@ -28,9 +24,7 @@
 		"age": 22,
 		"gender": "female",
 		"height": 1.6,
-		"weight": 45,
-		"bmi": 17.58,
-		"verdict": "Underweight"
+		"weight": 45
 	},
 	"P004": {
 		"id": "P004",
@@ -39,9 +33,7 @@
 		"age": 40,
 		"gender": "male",
 		"height": 1.8,
-		"weight": 90.0,
-		"bmi": 27.78,
-		"verdict": "Normal"
+		"weight": 90.0
 	},
 	"P005": {
 		"id": "P005",
@@ -50,9 +42,7 @@
 		"age": 30,
 		"gender": "female",
 		"height": 1.55,
-		"weight": 75,
-		"bmi": 31.22,
-		"verdict": "Obese"
+		"weight": 75
 	},
 	"P008": {
 		"id": "P008",
@@ -61,9 +51,7 @@
 		"age": 1,
 		"gender": "male",
 		"height": 5.8,
-		"weight": 73.4,
-		"bmi": 1.0,
-		"verdict": "Underweight"
+		"weight": 73.4
 	},
 	"P009": {
 		"id": "P009",
@@ -72,8 +60,6 @@
 		"age": 26,
 		"gender": "male",
 		"height": 5.8,
-		"weight": 73.4,
-		"bmi": 2.18,
-		"verdict": "Underweight"
+		"weight": 73.4
 	}
 }
